@@ -1,35 +1,41 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>AI LENS - Live Vision</title>
+<title>AI LENS</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;background:#05070a;overflow:hidden;font-family:Consolas,Menlo,monospace;}
+html,body{height:100%;background:#05070a;overflow:hidden;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;}
 #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
 #wrap{position:relative;}
 video{display:block;max-width:100vw;max-height:100vh;}
 canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 .hud{position:absolute;inset:0;pointer-events:none;}
-.scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(67,245,195,0.04) 0px,rgba(67,245,195,0.04) 1px,transparent 1px,transparent 5px);}
-.corner{position:absolute;width:26px;height:26px;border:2px solid #43f5c3;}
-.c1{left:6px;top:6px;border-right:none;border-bottom:none;}
-.c2{right:6px;top:6px;border-left:none;border-bottom:none;}
-.c3{left:6px;bottom:6px;border-right:none;border-top:none;}
-.c4{right:6px;bottom:6px;border-left:none;border-top:none;}
-.tag{position:absolute;left:14px;top:12px;font-size:12px;letter-spacing:2px;color:#43f5c3;}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#43f5c3;margin-right:8px;vertical-align:middle;}
-.status{position:absolute;right:14px;top:12px;font-size:12px;letter-spacing:1px;color:#ffd166;}
-.info{position:absolute;left:14px;bottom:12px;font-size:11px;letter-spacing:1px;color:#7fb8d8;}
-.bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;padding:14px 12px 20px;background:linear-gradient(transparent,rgba(5,7,10,0.92));z-index:10;}
-.btn{padding:12px 18px;border-radius:12px;border:1px solid rgba(67,245,195,0.5);background:rgba(5,7,10,0.6);color:#43f5c3;font-size:13px;font-family:inherit;letter-spacing:1px;}
-.btn.off{opacity:0.45;border-color:#555;color:#888;}
-#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#05070a;z-index:20;color:#43f5c3;padding:0 30px;}
-#start h1{font-size:24px;letter-spacing:8px;font-weight:400;}
-#start p{font-size:12px;color:#7fb8d8;letter-spacing:1px;text-align:center;line-height:2.2;}
-#startBtn{padding:16px 46px;border-radius:999px;border:none;background:#43f5c3;color:#05070a;font-size:16px;font-weight:800;font-family:inherit;letter-spacing:4px;}
-#startBtn[disabled]{opacity:0.4;}
+.scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.03) 0px,rgba(255,255,255,0.03) 1px,transparent 1px,transparent 5px);}
+.corner{position:absolute;width:24px;height:24px;border:2px solid rgba(255,255,255,0.65);}
+.c1{left:8px;top:8px;border-right:none;border-bottom:none;}
+.c2{right:8px;top:8px;border-left:none;border-bottom:none;}
+.c3{left:8px;bottom:8px;border-right:none;border-top:none;}
+.c4{right:8px;bottom:8px;border-left:none;border-top:none;}
+.tag{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.32);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:1px;color:#fff;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;}
+.status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;background:rgba(5,7,10,0.35);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:0.5px;color:#fff;max-width:58vw;text-align:right;}
+.info{position:absolute;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:rgba(5,7,10,0.3);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.85);}
+.bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));z-index:10;}
+.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;}
+.btn:active{background:rgba(255,255,255,0.3);}
+.btn.off{opacity:0.45;}
+.btn[disabled]{opacity:0.5;}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#4f46e5,#7c3aed 45%,#db2777);z-index:20;overflow:hidden;padding:0 24px;}
+.orb{position:absolute;border-radius:50%;filter:blur(70px);}
+.o1{width:320px;height:320px;background:rgba(96,165,250,0.55);top:-90px;left:-90px;}
+.o2{width:280px;height:280px;background:rgba(244,114,182,0.5);bottom:-80px;right:-80px;}
+.card{position:relative;width:min(88vw,340px);border-radius:30px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.4);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:42px 26px 34px;display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
+.card h1{font-size:26px;letter-spacing:10px;font-weight:500;text-indent:10px;}
+.card p{font-size:12px;line-height:2.1;color:rgba(255,255,255,0.9);text-align:center;letter-spacing:0.5px;min-height:52px;}
+.card button{width:100%;padding:15px 0;border-radius:999px;border:none;background:rgba(255,255,255,0.95);color:#5b21b6;font-size:15px;font-weight:800;letter-spacing:4px;font-family:inherit;text-indent:4px;}
+.card button[disabled]{opacity:0.5;}
 </style>
 </head>
 <body>
@@ -40,26 +46,30 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
     <div class="hud">
       <div class="scan"></div>
       <div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
-      <div class="tag"><span class="dot"></span><span id="tagText">AI LENS / STANDBY</span></div>
-      <div class="status" id="status">BOOT...</div>
-      <div class="info" id="info">COCO-SSD + MOVENET</div>
+      <div class="tag"><span class="dot"></span><span id="tagText">AI LENS</span></div>
+      <div class="status" id="status">STANDBY</div>
+      <div class="info" id="info">AI LENS</div>
     </div>
   </div>
 </div>
 <div class="bar" id="bar" style="display:none;">
   <button class="btn" id="btnFlip">切换镜头</button>
-  <button class="btn" id="btnObj">物体框 ON</button>
-  <button class="btn" id="btnPose">骨骼 ON</button>
+  <button class="btn" id="btnObj" disabled>物体框...</button>
+  <button class="btn" id="btnPose" disabled>骨骼...</button>
 </div>
 <div id="start">
-  <h1>AI LENS</h1>
-  <p>实时目标锁定 + 人物骨骼<br>首次使用需加载 AI 模型（约 20MB，请用 WiFi）</p>
-  <button id="startBtn" disabled>启动</button>
+  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="card">
+    <h1>AI LENS</h1>
+    <p id="startMsg">实时目标识别 + 人体骨骼<br>首次打开需加载 AI 模型，请稍候</p>
+    <button id="startBtn" disabled>启动</button>
+  </div>
 </div>
-<script src="js/tf.min.js"></script>
-<script src="js/coco-ssd.min.js"></script>
-<script src="js/pose-detection.min.js"></script>
+<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js"></script>
+<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js"></script>
+<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js"></script>
 <script>
+var MODEL_BASE='https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/';
 var video=document.getElementById('video');
 var cv=document.getElementById('cv');
 var ctx=cv.getContext('2d');
@@ -68,13 +78,15 @@ var infoEl=document.getElementById('info');
 var tagText=document.getElementById('tagText');
 var startMask=document.getElementById('start');
 var startBtn=document.getElementById('startBtn');
+var startMsg=document.getElementById('startMsg');
 var bar=document.getElementById('bar');
 var btnFlip=document.getElementById('btnFlip');
 var btnObj=document.getElementById('btnObj');
 var btnPose=document.getElementById('btnPose');
 var EDGES=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 var COLORS={person:'#ff5a5f',bicycle:'#43f5c3',car:'#43f5c3',motorcycle:'#43f5c3',bus:'#ffd166',truck:'#ffd166',cup:'#9fe8ff',bottle:'#9fe8ff',laptop:'#c084fc',tv:'#c084fc',cell_phone:'#ffd166',chair:'#43f5c3',dining_table:'#43f5c3',keyboard:'#c084fc',mouse:'#c084fc',book:'#ffd166',backpack:'#ff5a5f',clock:'#c084fc',potted_plant:'#4ade80',vase:'#4ade80',remote:'#9fe8ff',scissors:'#ffd166',teddy_bear:'#ff5a5f'};
-var coco=null, detector=null, modelsPromise=null;
+var coco=null, detector=null;
+var poseReady=false, objReady=false, poseLoading=false, objLoading=false;
 var objects=[], poses=[];
 var running=false;
 var facing='environment';
@@ -87,6 +99,43 @@ function hasVisible(p){
   return false;
 }
 
+function refreshTag(){
+  if(poseReady&&objReady){ tagText.textContent='AI LENS / LIVE'; }
+  else if(poseReady){ tagText.textContent='骨骼就绪 / 物体加载中'; }
+  else if(objReady){ tagText.textContent='物体就绪 / 骨骼加载中'; }
+  else { tagText.textContent='AI 初始化中'; }
+}
+
+async function loadPose(){
+  if(poseLoading||poseReady){ return; }
+  poseLoading=true;
+  try{
+    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,modelUrl:MODEL_BASE+'models/movenet/model.json'});
+    poseReady=true;
+    btnPose.disabled=false;
+    btnPose.textContent='骨骼 ON';
+    refreshTag();
+  }catch(e){
+    poseLoading=false;
+    btnPose.textContent='骨骼 加载失败';
+  }
+}
+
+async function loadCoco(){
+  if(objLoading||objReady){ return; }
+  objLoading=true;
+  try{
+    coco=await cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:MODEL_BASE+'models/coco-ssd-lite/model.json'});
+    objReady=true;
+    btnObj.disabled=false;
+    btnObj.textContent='物体框 ON';
+    refreshTag();
+  }catch(e){
+    objLoading=false;
+    btnObj.textContent='物体框 加载失败';
+  }
+}
+
 function draw(){
   if(video.videoWidth>0 && cv.width!==video.videoWidth){ cv.width=video.videoWidth; cv.height=video.videoHeight; }
   var w=cv.width,h=cv.height;
@@ -96,34 +145,32 @@ function draw(){
       var x=b.bbox[0],y=b.bbox[1],bw=b.bbox[2],bh=b.bbox[3];
       var color=COLORS[b.class]||'#43f5c3';
       ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(x,y,bw,bh);
-      var cl=Math.min(18,bw*0.25,bh*0.25);
-      ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,y+cl);ctx.lineTo(x,y);ctx.lineTo(x+cl,y);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+bw-cl,y);ctx.lineTo(x+bw,y);ctx.lineTo(x+bw,y+cl);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+bw,y+bh-cl);ctx.lineTo(x+bw,y+bh);ctx.lineTo(x+bw-cl,y+bh);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x+cl,y+bh);ctx.lineTo(x,y+bh);ctx.lineTo(x,y+bh-cl);ctx.stroke();
       var text=(b.class==='cell_phone'?'phone':b.class)+' '+(b.score*100).toFixed(0)+'%';
-      ctx.font='600 15px Consolas,monospace';
+      ctx.font='600 13px Consolas,monospace';
       var tw=ctx.measureText(text).width;
-      ctx.fillStyle='rgba(5,7,10,0.78)';ctx.fillRect(x,y-24,tw+14,24);
-      ctx.fillStyle=color;ctx.fillText(text,x+7,y-7);
+      ctx.fillStyle='rgba(5,7,10,0.62)';ctx.fillRect(x,y-20,tw+12,20);
+      ctx.fillStyle=color;ctx.fillText(text,x+6,y-6);
     });
   }
   if(showPose){
     poses.forEach(function(p){
       var kp=p.keypoints;
-      ctx.lineWidth=3.5;ctx.strokeStyle='#22f5ff';
+      ctx.lineWidth=3;ctx.strokeStyle='#22f5ff';
       EDGES.forEach(function(e){
         var ka=kp[e[0]],kb=kp[e[1]];
         if(ka.score>0.3&&kb.score>0.3){ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke();}
       });
       kp.forEach(function(k){
-        if(k.score>0.3){ctx.beginPath();ctx.arc(k.x,k.y,4.5,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
+        if(k.score>0.3){ctx.beginPath();ctx.arc(k.x,k.y,4,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
       });
     });
   }
   var humanCount=0;
   poses.forEach(function(p){ if(hasVisible(p)){humanCount++;} });
-  statusEl.textContent='TARGETS '+objects.length+' / HUMAN '+humanCount+' | '+Math.round(fpsSmooth)+' FPS';
+  if(!running){ statusEl.textContent='STANDBY'; }
+  else if(!poseReady&&!objReady){ statusEl.textContent='AI 模型加载中...'; }
+  else if(poseReady&&!objReady){ statusEl.textContent='骨骼就绪 · 物体加载中 | '+Math.round(fpsSmooth)+' FPS'; }
+  else { statusEl.textContent='TARGETS '+objects.length+' / HUMAN '+humanCount+' | '+Math.round(fpsSmooth)+' FPS'; }
 }
 
 async function loop(){
@@ -132,8 +179,8 @@ async function loop(){
   var dt=now-lastT; lastT=now;
   if(dt>0){ var inst=1000/dt; fpsSmooth=fpsSmooth>0?fpsSmooth*0.9+inst*0.1:inst; }
   try{
-    if(showPose && frame%2===0){ poses=await detector.estimatePoses(video); }
-    if(showObj && frame%3===0){ objects=await coco.detect(video); }
+    if(showPose && poseReady && frame%2===0){ poses=await detector.estimatePoses(video); }
+    if(showObj && objReady && frame%3===0){ objects=await coco.detect(video,50,0.15); }
   }catch(e){}
   draw();
   if(running){ requestAnimationFrame(loop); }
@@ -146,31 +193,20 @@ async function startCamera(){
   await video.play();
 }
 
-function ensureModels(){
-  if(!modelsPromise){
-    modelsPromise=Promise.all([
-      cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:'./models/coco-ssd-lite/model.json'}),
-      poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,modelUrl:'./models/movenet/model.json'})
-    ]).then(function(r){ coco=r[0]; detector=r[1]; });
-  }
-  return modelsPromise;
-}
-
 startBtn.addEventListener('click', async function(){
   startBtn.disabled=true;
-  startMask.querySelector('p').innerHTML='正在加载 AI模型……请稍候并允许摄像头权限';
+  startBtn.textContent='启动中...';
   try{
-    await Promise.all([ensureModels(), startCamera()]);
+    await startCamera();
     startMask.style.display='none';
     bar.style.display='flex';
-    tagText.textContent='AI LENS / LIVE';
-    var bk=''; try{ bk=tf.getBackend()||''; }catch(e){}
-    infoEl.textContent='COCO-SSD + MOVENET // '+bk.toUpperCase();
     running=true; lastT=performance.now(); requestAnimationFrame(loop);
+    refreshTag();
+    loadPose().then(function(){ return loadCoco(); });
   }catch(e){
-    startMask.querySelector('p').innerHTML='启动失败：'+(e&&e.message?e.message:e)+'，请允许摄像头权限后重试';
     startBtn.textContent='重试';
     startBtn.disabled=false;
+    startMsg.innerHTML='相机启动失败：请允许摄像头权限后重试';
   }
 });
 
@@ -194,7 +230,7 @@ btnPose.addEventListener('click', function(){
 });
 
 startBtn.disabled=false;
-setTimeout(function(){ try{ if(!running){ startBtn.click(); } }catch(e){} }, 500);
+setTimeout(function(){ try{ if(!running){ startBtn.click(); } }catch(e){} }, 400);
 </script>
 </body>
 </html>
