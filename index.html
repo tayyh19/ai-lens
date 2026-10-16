@@ -3,21 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#05070a">
 <title>AI LENS</title>
+<script>
+(function(){
+  var ASSETS=[];
+  var origFetch=window.fetch?window.fetch.bind(window):null;
+  function matchAsset(u){
+    if(!u||!ASSETS.length){return null;}
+    for(var i=0;i<ASSETS.length;i++){
+      if(u.indexOf(ASSETS[i].rel)>=0){return ASSETS[i];}
+    }
+    return null;
+  }
+  if(origFetch){
+    window.fetch=function(input,init){
+      try{
+        var u=(typeof input==='string')?input:((input&&input.url)||'');
+        var hit=matchAsset(u);
+        if(hit){return Promise.resolve(new Response(hit.buf,{status:200,headers:{'Content-Type':hit.ct||'application/octet-stream'}}));}
+      }catch(e){}
+      return origFetch(input,init);
+    };
+  }
+  window.__AI_LENS={ASSETS:ASSETS,origFetch:origFetch};
+})();
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:#05070a;overflow:hidden;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;}
-#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05070a;}
 #wrap{position:relative;}
 video{display:block;max-width:100vw;max-height:100vh;}
 canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 .hud{position:absolute;inset:0;pointer-events:none;}
-.scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.03) 0px,rgba(255,255,255,0.03) 1px,transparent 1px,transparent 5px);}
-.corner{position:absolute;width:24px;height:24px;border:2px solid rgba(255,255,255,0.65);}
-.c1{left:8px;top:8px;border-right:none;border-bottom:none;}
-.c2{right:8px;top:8px;border-left:none;border-bottom:none;}
-.c3{left:8px;bottom:8px;border-right:none;border-top:none;}
-.c4{right:8px;bottom:8px;border-left:none;border-top:none;}
 .tag{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.32);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:1px;color:#fff;}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;}
 .status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;background:rgba(5,7,10,0.35);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:0.5px;color:#fff;max-width:58vw;text-align:right;}
@@ -44,8 +63,6 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
     <video id="video" playsinline muted autoplay></video>
     <canvas id="cv"></canvas>
     <div class="hud">
-      <div class="scan"></div>
-      <div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
       <div class="tag"><span class="dot"></span><span id="tagText">AI LENS</span></div>
       <div class="status" id="status">STANDBY</div>
       <div class="info" id="info">AI LENS</div>
@@ -61,15 +78,50 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
   <div class="orb o1"></div><div class="orb o2"></div>
   <div class="card">
     <h1>AI LENS</h1>
-    <p id="startMsg">实时目标识别 + 人体骨骼<br>首次打开需加载 AI 模型，请稍候</p>
+    <p id="startMsg">实时目标识别 + 人体骨骼<br>点一下启动，边扫边加载</p>
     <button id="startBtn" disabled>启动</button>
   </div>
 </div>
-<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js"></script>
-<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js"></script>
-<script src="https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js"></script>
 <script>
-var MODEL_BASE='https://fastly.jsdelivr.net/gh/tayyh19/ai-lens@main/';
+(function(){
+  var TF2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js';
+  var CO2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js';
+  var PO2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js';
+  function load(src,cb){ var s=document.createElement('script'); s.src=src; s.onload=cb; s.onerror=cb; document.head.appendChild(s); }
+  function ensure(){
+    if(typeof tf==='undefined'){ load(TF2,function(){ setTimeout(ensure,50); }); return; }
+    if(typeof cocoSsd==='undefined'){ load(CO2,function(){ setTimeout(ensure,50); }); return; }
+    if(typeof poseDetection==='undefined'){ load(PO2,function(){ setTimeout(ensure,50); }); return; }
+    window.__LIBS_READY=true;
+  }
+  if(typeof tf!=='undefined'&&typeof cocoSsd!=='undefined'&&typeof poseDetection!=='undefined'){ window.__LIBS_READY=true; }
+  else { ensure(); }
+})();
+</script>
+<script>
+function waitLibs(cb){ if(window.__LIBS_READY){ cb(); } else { setTimeout(function(){ waitLibs(cb); },120); } }
+waitLibs(function(){
+var SOURCES=[
+  'https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/',
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/',
+  'https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/',
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/',
+  'https://gh-proxy.com/https://raw.githubusercontent.com/tayyh19/ai-lens/main/',
+  'https://ghproxy.net/https://raw.githubusercontent.com/tayyh19/ai-lens/main/'
+];
+var FILES=[
+  {rel:'models/movenet/model.json', size:168013, s:0},
+  {rel:'models/movenet/group1-shard1of2.bin', size:4194304, s:1},
+  {rel:'models/movenet/group1-shard2of2.bin', size:455912, s:5},
+  {rel:'models/coco-ssd-lite/model.json', size:257764, s:4},
+  {rel:'models/coco-ssd-lite/group1-shard1of4', size:2254332, s:0},
+  {rel:'models/coco-ssd-lite/group1-shard2of4', size:2254332, s:1},
+  {rel:'models/coco-ssd-lite/group1-shard3of4', size:2254332, s:0},
+  {rel:'models/coco-ssd-lite/group1-shard4of4', size:2254332, s:0}
+];
 var video=document.getElementById('video');
 var cv=document.getElementById('cv');
 var ctx=cv.getContext('2d');
@@ -86,12 +138,68 @@ var btnPose=document.getElementById('btnPose');
 var EDGES=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 var COLORS={person:'#ff5a5f',bicycle:'#43f5c3',car:'#43f5c3',motorcycle:'#43f5c3',bus:'#ffd166',truck:'#ffd166',cup:'#9fe8ff',bottle:'#9fe8ff',laptop:'#c084fc',tv:'#c084fc',cell_phone:'#ffd166',chair:'#43f5c3',dining_table:'#43f5c3',keyboard:'#c084fc',mouse:'#c084fc',book:'#ffd166',backpack:'#ff5a5f',clock:'#c084fc',potted_plant:'#4ade80',vase:'#4ade80',remote:'#9fe8ff',scissors:'#ffd166',teddy_bear:'#ff5a5f'};
 var coco=null, detector=null;
-var poseReady=false, objReady=false, poseLoading=false, objLoading=false;
+var poseReady=false, objReady=false;
 var objects=[], poses=[];
 var running=false;
 var facing='environment';
 var showObj=true, showPose=true;
 var frame=0, lastT=0, fpsSmooth=0;
+var DL={loaded:0, total:0, done:false};
+FILES.forEach(function(f){ DL.total+=f.size; });
+var ASSETS=window.__AI_LENS.ASSETS;
+var origFetch=window.__AI_LENS.origFetch;
+
+function updStatusLoad(){
+  var pct=Math.min(100, Math.round(DL.loaded/DL.total*100));
+  if(pct>=100){ statusEl.textContent='资源就绪 · 模型初始化中...'; }
+  else { statusEl.textContent='AI资源加载中 '+pct+'%'; }
+}
+
+async function fetchOne(f, attempt){
+  var srcIdx=(f.s+attempt)%SOURCES.length;
+  var url=SOURCES[srcIdx]+f.rel;
+  var res=await origFetch(url);
+  if(!res.ok){ throw new Error('HTTP '+res.status); }
+  var ct=res.headers.get('content-type')||'';
+  var buf;
+  if(res.body && res.body.getReader){
+    var reader=res.body.getReader();
+    var chunks=[]; var got=0;
+    while(true){
+      var r=await reader.read();
+      if(r.done){ break; }
+      chunks.push(r.value);
+      got+=r.value.length;
+      DL.loaded+=r.value.length;
+      updStatusLoad();
+    }
+    var all=new Uint8Array(got);
+    var off=0;
+    chunks.forEach(function(c){ all.set(c,off); off+=c.length; });
+    buf=all.buffer;
+  } else {
+    var ab=await res.arrayBuffer();
+    DL.loaded+=ab.byteLength;
+    updStatusLoad();
+    buf=ab;
+  }
+  return {rel:f.rel, buf:buf, ct:ct};
+}
+
+async function preloadGroup(files){
+  await Promise.all(files.map(async function(f){
+    var lastErr=null;
+    for(var a=0;a<3;a++){
+      try{
+        var asset=await fetchOne(f,a);
+        ASSETS.push(asset);
+        return;
+      }catch(e){ lastErr=e; }
+    }
+    try{ DL.loaded+=f.size; updStatusLoad(); }catch(e){}
+    throw lastErr || new Error('fail '+f.rel);
+  }));
+}
 
 function hasVisible(p){
   if(!p||!p.keypoints){return false;}
@@ -107,33 +215,23 @@ function refreshTag(){
 }
 
 async function loadPose(){
-  if(poseLoading||poseReady){ return; }
-  poseLoading=true;
   try{
-    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,modelUrl:MODEL_BASE+'models/movenet/model.json'});
+    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,modelUrl:SOURCES[0]+'models/movenet/model.json'});
     poseReady=true;
     btnPose.disabled=false;
     btnPose.textContent='骨骼 ON';
     refreshTag();
-  }catch(e){
-    poseLoading=false;
-    btnPose.textContent='骨骼 加载失败';
-  }
+  }catch(e){ btnPose.textContent='骨骼 加载失败'; }
 }
 
 async function loadCoco(){
-  if(objLoading||objReady){ return; }
-  objLoading=true;
   try{
-    coco=await cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:MODEL_BASE+'models/coco-ssd-lite/model.json'});
+    coco=await cocoSsd.load({base:'lite_mobilenet_v2',modelUrl:SOURCES[0]+'models/coco-ssd-lite/model.json'});
     objReady=true;
     btnObj.disabled=false;
     btnObj.textContent='物体框 ON';
     refreshTag();
-  }catch(e){
-    objLoading=false;
-    btnObj.textContent='物体框 加载失败';
-  }
+  }catch(e){ btnObj.textContent='物体框 加载失败'; }
 }
 
 function draw(){
@@ -168,8 +266,10 @@ function draw(){
   var humanCount=0;
   poses.forEach(function(p){ if(hasVisible(p)){humanCount++;} });
   if(!running){ statusEl.textContent='STANDBY'; }
-  else if(!poseReady&&!objReady){ statusEl.textContent='AI 模型加载中...'; }
+  else if(!DL.done){ updStatusLoad(); }
+  else if(!poseReady&&!objReady){ statusEl.textContent='模型初始化中...'; }
   else if(poseReady&&!objReady){ statusEl.textContent='骨骼就绪 · 物体加载中 | '+Math.round(fpsSmooth)+' FPS'; }
+  else if(!poseReady&&objReady){ statusEl.textContent='物体就绪 · 骨骼加载中 | '+Math.round(fpsSmooth)+' FPS'; }
   else { statusEl.textContent='TARGETS '+objects.length+' / HUMAN '+humanCount+' | '+Math.round(fpsSmooth)+' FPS'; }
 }
 
@@ -188,7 +288,7 @@ async function loop(){
 
 async function startCamera(){
   if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); }
-  var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false});
+  var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});
   video.srcObject=stream;
   await video.play();
 }
@@ -201,8 +301,15 @@ startBtn.addEventListener('click', async function(){
     startMask.style.display='none';
     bar.style.display='flex';
     running=true; lastT=performance.now(); requestAnimationFrame(loop);
-    refreshTag();
-    loadPose().then(function(){ return loadCoco(); });
+    updStatusLoad();
+    preloadGroup(FILES.slice(0,3)).then(function(){
+      loadPose();
+    }).catch(function(){});
+    preloadGroup(FILES.slice(3)).then(function(){
+      DL.done=true;
+      updStatusLoad();
+      loadCoco();
+    }).catch(function(){ DL.done=true; loadCoco(); });
   }catch(e){
     startBtn.textContent='重试';
     startBtn.disabled=false;
@@ -231,6 +338,7 @@ btnPose.addEventListener('click', function(){
 
 startBtn.disabled=false;
 setTimeout(function(){ try{ if(!running){ startBtn.click(); } }catch(e){} }, 400);
+});
 </script>
 </body>
 </html>
