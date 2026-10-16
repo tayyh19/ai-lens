@@ -37,30 +37,34 @@ html,body{height:100%;background:#05070a;overflow:hidden;font-family:-apple-syst
 video{display:block;max-width:100vw;max-height:100vh;}
 canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 .hud{position:absolute;inset:0;pointer-events:none;}
-.tag{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.32);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:1px;color:#fff;}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;}
-.status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;background:rgba(5,7,10,0.35);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:0.5px;color:#fff;max-width:58vw;text-align:right;}
-.info{position:absolute;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:rgba(5,7,10,0.3);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.85);}
+.tag{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;max-width:42vw;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,0.26),rgba(255,255,255,0.10));border:1.5px solid rgba(255,255,255,0.5);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 6px 20px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.6);font-size:11px;letter-spacing:1px;color:#fff;}
+.tag .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dot{flex:none;display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80;}
+.status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:linear-gradient(135deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06));border:1.5px solid rgba(255,255,255,0.42);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);box-shadow:0 6px 20px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.5);font-size:11px;letter-spacing:0.5px;color:#fff;}
+.info{position:absolute;left:12px;bottom:92px;padding:6px 13px;border-radius:999px;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:linear-gradient(135deg,rgba(255,255,255,0.16),rgba(255,255,255,0.05));border:1px solid rgba(255,255,255,0.35);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 4px 14px rgba(0,0,0,0.18),inset 0 1px 0 rgba(255,255,255,0.45);font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.92);}
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));z-index:10;}
-.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.btn:active{background:rgba(255,255,255,0.3);}
+.btn{padding:12px 18px;border-radius:999px;max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:linear-gradient(135deg,rgba(255,255,255,0.28),rgba(255,255,255,0.10));border:1.5px solid rgba(255,255,255,0.5);backdrop-filter:blur(24px) saturate(1.75);-webkit-backdrop-filter:blur(24px) saturate(1.75);box-shadow:0 8px 24px rgba(0,0,0,0.22),inset 0 1px 0 rgba(255,255,255,0.65);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:transform 0.12s,opacity 0.2s;}
+.btn:active{background:rgba(255,255,255,0.4);transform:scale(0.96);}
 .btn.off{opacity:0.45;}
 .btn[disabled]{opacity:0.5;}
-#camSheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:30;padding:0 18px;}
-.camCard{width:min(92vw,400px);border-radius:24px;background:rgba(22,26,34,0.78);border:1px solid rgba(255,255,255,0.3);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:18px;display:flex;flex-direction:column;gap:10px;max-height:72vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,0.4);}
-.camTitle{color:#fff;font-size:14px;letter-spacing:3px;text-align:center;padding:2px 0 8px;}
-.camItem{padding:13px 16px;border-radius:14px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.08);color:#fff;font-size:13px;text-align:left;font-family:inherit;letter-spacing:0.5px;line-height:1.4;}
-.camItem:active{background:rgba(255,255,255,0.22);}
-.camItem.camActive{border-color:#4ade80;background:rgba(74,222,128,0.16);}
-.camClose{padding:12px;border-radius:14px;border:none;background:rgba(255,255,255,0.16);color:#fff;font-size:13px;font-family:inherit;letter-spacing:2px;}
+#camSheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.42);z-index:30;padding:0 18px;}
+.camCard{width:min(92vw,400px);border-radius:26px;background:linear-gradient(150deg,rgba(255,255,255,0.22),rgba(255,255,255,0.07));border:1.5px solid rgba(255,255,255,0.48);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);padding:18px;display:flex;flex-direction:column;gap:10px;max-height:74vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,0.42),inset 0 1px 0 rgba(255,255,255,0.65);}
+.camTitle{color:#fff;font-size:13px;letter-spacing:3px;text-align:center;padding:2px 0 8px;text-shadow:0 1px 8px rgba(0,0,0,0.3);}
+.camItem{padding:13px 16px;border-radius:16px;border:1.5px solid rgba(255,255,255,0.35);background:linear-gradient(135deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06));color:#fff;font-size:12.5px;text-align:left;font-family:inherit;letter-spacing:0.4px;line-height:1.45;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);}
+.camItem:active{background:rgba(255,255,255,0.3);}
+.camItem.camActive{border-color:#4ade80;background:linear-gradient(135deg,rgba(74,222,128,0.25),rgba(74,222,128,0.08));}
+.zoomRow{display:flex;gap:8px;justify-content:center;padding:2px 0 4px;}
+.zoomBtn{flex:1;padding:10px 0;border-radius:12px;border:1.5px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.12);color:#fff;font-size:12.5px;font-family:inherit;letter-spacing:1px;}
+.zoomBtn.zOn{border-color:#4ade80;background:rgba(74,222,128,0.22);}
+.camClose{padding:12px;border-radius:16px;border:1.5px solid rgba(255,255,255,0.4);background:linear-gradient(135deg,rgba(255,255,255,0.22),rgba(255,255,255,0.08));color:#fff;font-size:13px;font-family:inherit;letter-spacing:2px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);}
 #start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#4f46e5,#7c3aed 45%,#db2777);z-index:40;overflow:hidden;padding:0 24px;}
 .orb{position:absolute;border-radius:50%;filter:blur(70px);}
 .o1{width:320px;height:320px;background:rgba(96,165,250,0.55);top:-90px;left:-90px;}
 .o2{width:280px;height:280px;background:rgba(244,114,182,0.5);bottom:-80px;right:-80px;}
-.card{position:relative;width:min(88vw,340px);border-radius:30px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.4);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:42px 26px 34px;display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;box-shadow:0 24px 60px rgba(0,0,0,0.25);}
-.card h1{font-size:26px;letter-spacing:10px;font-weight:500;text-indent:10px;}
-.card p{font-size:12px;line-height:2.1;color:rgba(255,255,255,0.9);text-align:center;letter-spacing:0.5px;min-height:52px;}
-.card button{width:100%;padding:15px 0;border-radius:999px;border:none;background:rgba(255,255,255,0.95);color:#5b21b6;font-size:15px;font-weight:800;letter-spacing:4px;font-family:inherit;text-indent:4px;}
+.card{position:relative;width:min(88vw,340px);border-radius:32px;background:linear-gradient(150deg,rgba(255,255,255,0.26),rgba(255,255,255,0.10));border:1.5px solid rgba(255,255,255,0.55);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);padding:44px 26px 36px;display:flex;flex-direction:column;align-items:center;gap:18px;color:#fff;box-shadow:0 24px 60px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.7);}
+.card h1{font-size:26px;letter-spacing:10px;font-weight:500;text-indent:10px;text-shadow:0 2px 16px rgba(0,0,0,0.25);}
+.card p{font-size:12px;line-height:2.1;color:rgba(255,255,255,0.92);text-align:center;letter-spacing:0.5px;min-height:52px;}
+.card button{width:100%;padding:15px 0;border-radius:999px;border:none;background:rgba(255,255,255,0.95);color:#5b21b6;font-size:15px;font-weight:800;letter-spacing:4px;font-family:inherit;text-indent:4px;box-shadow:0 8px 24px rgba(0,0,0,0.18),inset 0 -2px 0 rgba(91,33,182,0.12);}
 .card button[disabled]{opacity:0.5;}
 </style>
 </head>
@@ -70,7 +74,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
     <video id="video" playsinline muted autoplay></video>
     <canvas id="cv"></canvas>
     <div class="hud">
-      <div class="tag"><span class="dot"></span><span id="tagText">AI LENS</span></div>
+      <div class="tag"><span class="dot"></span><span class="txt" id="tagText">AI LENS</span></div>
       <div class="status" id="status">STANDBY</div>
       <div class="info" id="info">AI LENS</div>
     </div>
@@ -84,6 +88,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 <div id="camSheet">
   <div class="camCard">
     <div class="camTitle" id="camTitle">选择镜头</div>
+    <div class="zoomRow" id="zoomRow" style="display:none;"></div>
     <div id="camList"></div>
     <button class="camClose" id="camClose">关 闭</button>
   </div>
@@ -156,6 +161,7 @@ var camSheet=document.getElementById('camSheet');
 var camList=document.getElementById('camList');
 var camClose=document.getElementById('camClose');
 var camTitle=document.getElementById('camTitle');
+var zoomRow=document.getElementById('zoomRow');
 var EDGES=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 var COLORS={person:'#ff5a5f',bicycle:'#43f5c3',car:'#43f5c3',motorcycle:'#43f5c3',bus:'#ffd166',truck:'#ffd166',cup:'#9fe8ff',bottle:'#9fe8ff',laptop:'#c084fc',tv:'#c084fc',cell_phone:'#ffd166',chair:'#43f5c3',dining_table:'#43f5c3',keyboard:'#c084fc',mouse:'#c084fc',book:'#ffd166',backpack:'#ff5a5f',clock:'#c084fc',potted_plant:'#4ade80',vase:'#4ade80',remote:'#9fe8ff',scissors:'#ffd166',teddy_bear:'#ff5a5f'};
 var coco=null, detector=null;
@@ -167,12 +173,15 @@ var cropCv=null;
 var poseBusy=false, objBusy=false;
 var poseTick=0;
 var MAX_TRACKS=3;
+var CROP_MAX=512;
 var running=false;
 var facing='environment';
 var showObj=true, showPose=true;
 var frame=0, lastT=0, fpsSmooth=0;
 var cams=[];
 var curCamId=null;
+var zoomCaps=null;
+var curZoom=1;
 var DL={loaded:0, total:0, done:false};
 FILES.forEach(function(f){ DL.total+=f.size; });
 var ASSETS=window.__AI_LENS.ASSETS;
@@ -271,12 +280,15 @@ async function poseStep(){
       var cw=Math.min(vw-cx, b.w*(1+2*pad));
       var ch=Math.min(vh-cy, b.h*(1+2*pad));
       if(cw>50 && ch>50){
-        var cc=ensureCropCanvas(Math.round(cw),Math.round(ch));
+        var scale=1;
+        if(cw>CROP_MAX){ scale=CROP_MAX/cw; }
+        var tw=Math.round(cw*scale), th=Math.round(ch*scale);
+        var cc=ensureCropCanvas(tw,th);
         var cctx=cc.getContext('2d');
-        cctx.drawImage(video, Math.round(cx),Math.round(cy),Math.round(cw),Math.round(ch), 0,0, cc.width,cc.height);
+        cctx.drawImage(video, Math.round(cx),Math.round(cy),Math.round(cw),Math.round(ch), 0,0, tw,th);
         var ps=await detector.estimatePoses(cc);
         if(ps.length && ps[0].keypoints){
-          var kp=ps[0].keypoints.map(function(k){ return {x:(k.x*cw/cc.width)+cx, y:(k.y*ch/cc.height)+cy, score:k.score}; });
+          var kp=ps[0].keypoints.map(function(k){ return {x:(k.x/scale)+cx, y:(k.y/scale)+cy, score:k.score}; });
           smoothTrackKp(t,kp);
           t.miss=0;
         }
@@ -487,16 +499,55 @@ function updateCamInfo(){
     for(var i=0;i<cams.length;i++){ if(cams[i].deviceId===curCamId){ nm=shortName(cams[i],i); break; } }
     if(nm){ parts[0]='镜头 '+nm; }
     if(st.width && st.height){ parts.push(st.width+'x'+st.height); }
-    try{
-      var cap=tr.getCapabilities ? tr.getCapabilities() : null;
-      if(cap && cap.zoom && cap.zoom.max>cap.zoom.min){ parts.push('支持变焦'); }
-    }catch(e){}
+    if(curZoom>1){ parts.push(curZoom.toFixed(1)+'x'); }
     infoEl.textContent=parts.join(' · ');
   }catch(e){}
 }
 
+function renderZoomRow(){
+  zoomRow.innerHTML='';
+  if(!zoomCaps || !zoomCaps.zoom){ zoomRow.style.display='none'; return; }
+  var mx=Math.min(zoomCaps.zoom.max, 10);
+  if(mx<=1.05){ zoomRow.style.display='none'; return; }
+  zoomRow.style.display='flex';
+  var levels=[1,2,3];
+  if(mx>=5){ levels=[1,2,5]; }
+  levels.forEach(function(z){
+    if(z>mx+0.01){ return; }
+    var b=document.createElement('button');
+    b.className='zoomBtn'+(Math.abs(curZoom-z)<0.01?' zOn':'');
+    b.textContent=z+'x';
+    b.onclick=function(){ applyZoom(z); };
+    zoomRow.appendChild(b);
+  });
+}
+
+function applyZoom(z){
+  try{
+    var tr=video.srcObject?video.srcObject.getVideoTracks()[0]:null;
+    if(!tr){ return; }
+    var c=tr.getCapabilities?tr.getCapabilities():null;
+    if(c && c.zoom && z>=c.zoom.min-0.01 && z<=c.zoom.max+0.01){
+      tr.applyConstraints({advanced:[{zoom:z}]}).then(function(){
+        curZoom=z;
+        renderZoomRow();
+        updateCamInfo();
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+
+function readZoomCaps(){
+  try{
+    var tr=video.srcObject?video.srcObject.getVideoTracks()[0]:null;
+    zoomCaps=(tr&&tr.getCapabilities)?tr.getCapabilities():null;
+  }catch(e){ zoomCaps=null; }
+}
+
 function openCamMenu(){
   loadCams().then(function(){
+    readZoomCaps();
+    renderZoomRow();
     camList.innerHTML='';
     camTitle.textContent='选择镜头（共 '+cams.length+' 个）';
     if(!cams.length){
@@ -521,6 +572,7 @@ function closeCamMenu(){ camSheet.style.display='none'; }
 async function switchCam(id){
   try{
     tracks.length=0; smoothBoxes.length=0; lastPersons=[];
+    curZoom=1;
     await startCameraById(id);
     curCamId=id;
     updateCamBtn();
