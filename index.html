@@ -42,7 +42,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 .status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;background:rgba(5,7,10,0.35);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:0.5px;color:#fff;max-width:58vw;text-align:right;}
 .info{position:absolute;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:rgba(5,7,10,0.3);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.85);}
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));z-index:10;}
-.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;max-width:33vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .btn:active{background:rgba(255,255,255,0.3);}
 .btn.off{opacity:0.45;}
 .btn[disabled]{opacity:0.5;}
@@ -83,7 +83,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 </div>
 <div id="camSheet">
   <div class="camCard">
-    <div class="camTitle">选择镜头</div>
+    <div class="camTitle" id="camTitle">选择镜头</div>
     <div id="camList"></div>
     <button class="camClose" id="camClose">关 闭</button>
   </div>
@@ -92,7 +92,7 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
   <div class="orb o1"></div><div class="orb o2"></div>
   <div class="card">
     <h1>AI LENS</h1>
-    <p id="startMsg">实时目标识别 + 人体骨骼<br>点一下启动，边扫边加载</p>
+    <p id="startMsg">实时目标识别 + 多人骨骼<br>点一下启动，边扫边加载</p>
     <button id="startBtn" disabled>启动</button>
   </div>
 </div>
@@ -129,7 +129,7 @@ var SOURCES=[
   'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/'
 ];
 var FILES=[
-  {rel:'models/movenet-thunder/model.json', size:168151, s:0},
+  {rel:'models/movenet-thunder/model.json', size:158101, s:0},
   {rel:'models/movenet-thunder/group1-shard1of3.bin', size:4159038, s:0},
   {rel:'models/movenet-thunder/group1-shard2of3.bin', size:4159038, s:1},
   {rel:'models/movenet-thunder/group1-shard3of3.bin', size:4159036, s:1},
@@ -155,12 +155,18 @@ var btnPose=document.getElementById('btnPose');
 var camSheet=document.getElementById('camSheet');
 var camList=document.getElementById('camList');
 var camClose=document.getElementById('camClose');
+var camTitle=document.getElementById('camTitle');
 var EDGES=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 var COLORS={person:'#ff5a5f',bicycle:'#43f5c3',car:'#43f5c3',motorcycle:'#43f5c3',bus:'#ffd166',truck:'#ffd166',cup:'#9fe8ff',bottle:'#9fe8ff',laptop:'#c084fc',tv:'#c084fc',cell_phone:'#ffd166',chair:'#43f5c3',dining_table:'#43f5c3',keyboard:'#c084fc',mouse:'#c084fc',book:'#ffd166',backpack:'#ff5a5f',clock:'#c084fc',potted_plant:'#4ade80',vase:'#4ade80',remote:'#9fe8ff',scissors:'#ffd166',teddy_bear:'#ff5a5f'};
 var coco=null, detector=null;
 var poseReady=false, objReady=false;
 var smoothBoxes=[];
-var sk=null;
+var tracks=[];
+var lastPersons=[];
+var cropCv=null;
+var poseBusy=false, objBusy=false;
+var poseTick=0;
+var MAX_TRACKS=3;
 var running=false;
 var facing='environment';
 var showObj=true, showPose=true;
@@ -206,24 +212,108 @@ function smoothUpdate(newObjs){
   }
 }
 
-function smoothPose(poses){
-  if(!poses.length||!poses[0].keypoints){ return; }
-  var kp=poses[0].keypoints;
-  if(!sk){ sk=kp.map(function(k){return {x:k.x,y:k.y,s:k.score};}); return; }
-  for(var i=0;i<kp.length;i++){
-    var k=kp[i], o=sk[i];
-    if(k.score>0.2){
-      if(o.s>0.2){ o.x=o.x*0.35+k.x*0.65; o.y=o.y*0.35+k.y*0.65; o.s=k.score; }
-      else { o.x=k.x; o.y=k.y; o.s=k.score; }
-    } else { o.s=o.s*0.8; }
+function personTracksUpdate(){
+  tracks.forEach(function(t){ t.matched=false; });
+  lastPersons.forEach(function(p){
+    var best=null, bestIou=0;
+    tracks.forEach(function(t){
+      if(t.matched){return;}
+      var iou=IoU([t.box.x,t.box.y,t.box.w,t.box.h],p.bbox);
+      if(iou>bestIou){bestIou=iou;best=t;}
+    });
+    if(best && bestIou>0.15){
+      best.matched=true;
+      best.box.x=best.box.x*0.5+p.bbox[0]*0.5;
+      best.box.y=best.box.y*0.5+p.bbox[1]*0.5;
+      best.box.w=best.box.w*0.5+p.bbox[2]*0.5;
+      best.box.h=best.box.h*0.5+p.bbox[3]*0.5;
+      best.miss=0;
+    } else if(tracks.length<MAX_TRACKS){
+      tracks.push({box:{x:p.bbox[0],y:p.bbox[1],w:p.bbox[2],h:p.bbox[3]},kp:null,miss:0,matched:true});
+    }
+  });
+  for(var i=tracks.length-1;i>=0;i--){
+    var t=tracks[i];
+    if(!t.matched){ t.miss++; if(t.miss>12){ tracks.splice(i,1); } }
   }
 }
 
-function countVisibleKp(){
-  if(!sk){ return 0; }
-  var n=0;
-  for(var i=0;i<sk.length;i++){ if(sk[i].s>0.3){ n++; } }
-  return n;
+function smoothTrackKp(track,kp){
+  if(!track.kp || track.kp.length!==kp.length){ track.kp=kp.map(function(k){return {x:k.x,y:k.y,s:k.score};}); return; }
+  for(var i=0;i<kp.length;i++){
+    var k=kp[i], o=track.kp[i];
+    if(k.score>0.2){
+      if(o.s>0.2){ o.x=o.x*0.35+k.x*0.65; o.y=o.y*0.35+k.y*0.65; o.s=k.score; }
+      else { o.x=k.x; o.y=k.y; o.s=k.score; }
+    } else { o.s=o.s*0.85; }
+  }
+}
+
+function ensureCropCanvas(w,h){
+  if(!cropCv){ cropCv=document.createElement('canvas'); }
+  if(cropCv.width!==w||cropCv.height!==h){ cropCv.width=w; cropCv.height=h; }
+  return cropCv;
+}
+
+async function poseStep(){
+  if(poseBusy||!poseReady){ return; }
+  poseBusy=true;
+  try{
+    var vw=video.videoWidth, vh=video.videoHeight;
+    if(vw<10){ poseBusy=false; return; }
+    if(tracks.length){
+      var t=tracks[poseTick%tracks.length];
+      poseTick++;
+      var b=t.box;
+      var pad=0.22;
+      var cx=Math.max(0, b.x-b.w*pad);
+      var cy=Math.max(0, b.y-b.h*pad);
+      var cw=Math.min(vw-cx, b.w*(1+2*pad));
+      var ch=Math.min(vh-cy, b.h*(1+2*pad));
+      if(cw>50 && ch>50){
+        var cc=ensureCropCanvas(Math.round(cw),Math.round(ch));
+        var cctx=cc.getContext('2d');
+        cctx.drawImage(video, Math.round(cx),Math.round(cy),Math.round(cw),Math.round(ch), 0,0, cc.width,cc.height);
+        var ps=await detector.estimatePoses(cc);
+        if(ps.length && ps[0].keypoints){
+          var kp=ps[0].keypoints.map(function(k){ return {x:(k.x*cw/cc.width)+cx, y:(k.y*ch/cc.height)+cy, score:k.score}; });
+          smoothTrackKp(t,kp);
+          t.miss=0;
+        }
+      }
+    } else {
+      var ps2=await detector.estimatePoses(video);
+      if(ps2.length && ps2[0].keypoints){
+        var kp2=ps2[0].keypoints;
+        var vis=0;
+        for(var i=0;i<kp2.length;i++){ if(kp2[i].score>0.35)vis++; }
+        var coreOk = (kp2[0].score>0.4) || (kp2[5].score>0.35 && kp2[6].score>0.35) || (kp2[11].score>0.35 && kp2[12].score>0.35);
+        if(vis>=8 && coreOk){
+          var xs=[],ys=[];
+          kp2.forEach(function(k){ if(k.score>0.3){ xs.push(k.x); ys.push(k.y); } });
+          if(xs.length>=6){
+            var x1=Math.min.apply(null,xs), x2=Math.max.apply(null,xs);
+            var y1=Math.min.apply(null,ys), y2=Math.max.apply(null,ys);
+            tracks.push({box:{x:x1,y:y1,w:Math.max(60,x2-x1),h:Math.max(60,y2-y1)},kp:kp2.map(function(k){return {x:k.x,y:k.y,s:k.score};}),miss:0,matched:true});
+          }
+        }
+      }
+    }
+  }catch(e){}
+  poseBusy=false;
+}
+
+function objStep(){
+  if(objBusy||!objReady){ return; }
+  objBusy=true;
+  coco.detect(video,60,0.18).then(function(raw){
+    var persons=[];
+    var others=[];
+    raw.forEach(function(d){ if(d.class==='person'){ persons.push(d); } else { others.push(d); } });
+    smoothUpdate(others);
+    lastPersons=persons;
+    personTracksUpdate();
+  }).catch(function(){}).then(function(){ objBusy=false; });
 }
 
 function updStatusLoad(){
@@ -321,18 +411,21 @@ function draw(){
       ctx.fillStyle=color;ctx.fillText(text,x+6,y-6);
     });
   }
-  if(showPose && sk){
-    ctx.lineWidth=2.5;ctx.strokeStyle='#22f5ff';
-    EDGES.forEach(function(e){
-      var ka=sk[e[0]],kb=sk[e[1]];
-      if(ka.s>0.3&&kb.s>0.3){ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke();}
-    });
-    sk.forEach(function(k){
-      if(k.s>0.3){ctx.beginPath();ctx.arc(k.x,k.y,3.5,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
+  if(showPose){
+    tracks.forEach(function(t){
+      if(!t.kp){ return; }
+      var kp=t.kp;
+      ctx.lineWidth=2.5;ctx.strokeStyle='#22f5ff';
+      EDGES.forEach(function(e){
+        var ka=kp[e[0]],kb=kp[e[1]];
+        if(ka&&kb&&ka.s>0.3&&kb.s>0.3){ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke();}
+      });
+      kp.forEach(function(k){
+        if(k.s>0.3){ctx.beginPath();ctx.arc(k.x,k.y,3.5,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
+      });
     });
   }
-  var humanCount=0;
-  if(showPose && countVisibleKp()>5){ humanCount=1; }
+  var humanCount=tracks.length;
   if(!running){ statusEl.textContent='STANDBY'; }
   else if(!DL.done){ updStatusLoad(); }
   else if(!poseReady&&!objReady){ statusEl.textContent='模型初始化中...'; }
@@ -346,15 +439,8 @@ async function loop(){
   var now=performance.now();
   var dt=now-lastT; lastT=now;
   if(dt>0){ var inst=1000/dt; fpsSmooth=fpsSmooth>0?fpsSmooth*0.9+inst*0.1:inst; }
-  try{
-    if(showPose && poseReady && frame%2===0){
-      var ps=await detector.estimatePoses(video);
-      smoothPose(ps);
-    } else if(showObj && objReady && frame%2===1){
-      var raw=await coco.detect(video,60,0.18);
-      smoothUpdate(raw);
-    }
-  }catch(e){}
+  if(showPose && poseReady && frame%2===0){ poseStep(); }
+  if(showObj && objReady && frame%3===1){ objStep(); }
   draw();
   if(running){ requestAnimationFrame(loop); }
 }
@@ -390,13 +476,33 @@ function updateCamBtn(){
   btnCam.textContent=name;
 }
 
+function updateCamInfo(){
+  try{
+    var tr=video.srcObject && video.srcObject.getVideoTracks ? video.srcObject.getVideoTracks()[0] : null;
+    if(!tr){ infoEl.textContent='AI LENS'; return; }
+    var st=tr.getSettings ? tr.getSettings() : {};
+    var parts=[];
+    parts.push('镜头');
+    var nm='';
+    for(var i=0;i<cams.length;i++){ if(cams[i].deviceId===curCamId){ nm=shortName(cams[i],i); break; } }
+    if(nm){ parts[0]='镜头 '+nm; }
+    if(st.width && st.height){ parts.push(st.width+'x'+st.height); }
+    try{
+      var cap=tr.getCapabilities ? tr.getCapabilities() : null;
+      if(cap && cap.zoom && cap.zoom.max>cap.zoom.min){ parts.push('支持变焦'); }
+    }catch(e){}
+    infoEl.textContent=parts.join(' · ');
+  }catch(e){}
+}
+
 function openCamMenu(){
   loadCams().then(function(){
     camList.innerHTML='';
+    camTitle.textContent='选择镜头（共 '+cams.length+' 个）';
     if(!cams.length){
       var d=document.createElement('div');
       d.className='camItem';
-      d.textContent='未识别到其他镜头';
+      d.textContent='未识别到可用镜头';
       camList.appendChild(d);
     }
     cams.forEach(function(c,i){
@@ -414,10 +520,11 @@ function closeCamMenu(){ camSheet.style.display='none'; }
 
 async function switchCam(id){
   try{
-    sk=null; smoothBoxes.length=0;
+    tracks.length=0; smoothBoxes.length=0; lastPersons=[];
     await startCameraById(id);
     curCamId=id;
     updateCamBtn();
+    updateCamInfo();
   }catch(e){}
 }
 
@@ -447,7 +554,7 @@ startBtn.addEventListener('click', async function(){
     startMask.style.display='none';
     bar.style.display='flex';
     running=true; lastT=performance.now(); requestAnimationFrame(loop);
-    loadCams().then(updateCamBtn);
+    loadCams().then(function(){ updateCamBtn(); updateCamInfo(); });
     updStatusLoad();
     preloadGroup(FILES.slice(0,4)).then(function(){
       loadPose();
@@ -479,7 +586,7 @@ btnPose.addEventListener('click', function(){
   showPose=!showPose;
   btnPose.textContent='骨骼 '+(showPose?'ON':'OFF');
   btnPose.className=showPose?'btn':'btn off';
-  if(!showPose){ sk=null; }
+  if(!showPose){ tracks.length=0; }
 });
 
 startBtn.disabled=false;
