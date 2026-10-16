@@ -42,11 +42,18 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 .status{position:absolute;right:12px;top:12px;padding:7px 14px;border-radius:999px;background:rgba(5,7,10,0.35);border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;letter-spacing:0.5px;color:#fff;max-width:58vw;text-align:right;}
 .info{position:absolute;left:12px;bottom:12px;padding:6px 12px;border-radius:999px;background:rgba(5,7,10,0.3);border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10px;letter-spacing:1px;color:rgba(255,255,255,0.85);}
 .bar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;justify-content:center;padding:14px 12px calc(16px + env(safe-area-inset-bottom,0px));z-index:10;}
-.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;}
+.btn{padding:12px 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.38);background:rgba(255,255,255,0.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#fff;font-size:13px;font-family:inherit;letter-spacing:1px;transition:opacity 0.2s;max-width:33vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .btn:active{background:rgba(255,255,255,0.3);}
 .btn.off{opacity:0.45;}
 .btn[disabled]{opacity:0.5;}
-#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#4f46e5,#7c3aed 45%,#db2777);z-index:20;overflow:hidden;padding:0 24px;}
+#camSheet{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:30;padding:0 18px;}
+.camCard{width:min(92vw,400px);border-radius:24px;background:rgba(22,26,34,0.78);border:1px solid rgba(255,255,255,0.3);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:18px;display:flex;flex-direction:column;gap:10px;max-height:72vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,0.4);}
+.camTitle{color:#fff;font-size:14px;letter-spacing:3px;text-align:center;padding:2px 0 8px;}
+.camItem{padding:13px 16px;border-radius:14px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.08);color:#fff;font-size:13px;text-align:left;font-family:inherit;letter-spacing:0.5px;line-height:1.4;}
+.camItem:active{background:rgba(255,255,255,0.22);}
+.camItem.camActive{border-color:#4ade80;background:rgba(74,222,128,0.16);}
+.camClose{padding:12px;border-radius:14px;border:none;background:rgba(255,255,255,0.16);color:#fff;font-size:13px;font-family:inherit;letter-spacing:2px;}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#4f46e5,#7c3aed 45%,#db2777);z-index:40;overflow:hidden;padding:0 24px;}
 .orb{position:absolute;border-radius:50%;filter:blur(70px);}
 .o1{width:320px;height:320px;background:rgba(96,165,250,0.55);top:-90px;left:-90px;}
 .o2{width:280px;height:280px;background:rgba(244,114,182,0.5);bottom:-80px;right:-80px;}
@@ -70,9 +77,16 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
   </div>
 </div>
 <div class="bar" id="bar" style="display:none;">
-  <button class="btn" id="btnFlip">切换镜头</button>
+  <button class="btn" id="btnCam">镜头</button>
   <button class="btn" id="btnObj" disabled>物体框...</button>
   <button class="btn" id="btnPose" disabled>骨骼...</button>
+</div>
+<div id="camSheet">
+  <div class="camCard">
+    <div class="camTitle">选择镜头</div>
+    <div id="camList"></div>
+    <button class="camClose" id="camClose">关 闭</button>
+  </div>
 </div>
 <div id="start">
   <div class="orb o1"></div><div class="orb o2"></div>
@@ -82,12 +96,12 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
     <button id="startBtn" disabled>启动</button>
   </div>
 </div>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/tf.min.js"></script>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/coco-ssd.min.js"></script>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/pose-detection.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/js/tf.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/js/coco-ssd.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/js/pose-detection.min.js"></script>
 <script>
 (function(){
-  var C='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/';
+  var C='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/';
   var TF2=C+'js/tf.min.js';
   var CO2=C+'js/coco-ssd.min.js';
   var PO2=C+'js/pose-detection.min.js';
@@ -105,24 +119,25 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 <script>
 function waitLibs(cb){ if(window.__LIBS_READY){ cb(); } else { setTimeout(function(){ waitLibs(cb); },120); } }
 waitLibs(function(){
-var C='https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/';
+var C='https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/';
 var SOURCES=[
   C,
-  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/',
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/',
   C,
-  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/',
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/',
   C,
-  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/'
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/'
 ];
 var FILES=[
-  {rel:'models/movenet/model.json', size:168013, s:0},
-  {rel:'models/movenet/group1-shard1of2.bin', size:4194304, s:0},
-  {rel:'models/movenet/group1-shard2of2.bin', size:455912, s:1},
+  {rel:'models/movenet-thunder/model.json', size:168151, s:0},
+  {rel:'models/movenet-thunder/group1-shard1of3.bin', size:4159038, s:0},
+  {rel:'models/movenet-thunder/group1-shard2of3.bin', size:4159038, s:1},
+  {rel:'models/movenet-thunder/group1-shard3of3.bin', size:4159036, s:1},
   {rel:'models/coco-ssd-lite/model.json', size:257764, s:0},
-  {rel:'models/coco-ssd-lite/group1-shard1of4', size:2254332, s:1},
+  {rel:'models/coco-ssd-lite/group1-shard1of4', size:2254332, s:0},
   {rel:'models/coco-ssd-lite/group1-shard2of4', size:2254332, s:0},
   {rel:'models/coco-ssd-lite/group1-shard3of4', size:2254332, s:1},
-  {rel:'models/coco-ssd-lite/group1-shard4of4', size:2254332, s:1}
+  {rel:'models/coco-ssd-lite/group1-shard4of4', size:2254332, s:0}
 ];
 var video=document.getElementById('video');
 var cv=document.getElementById('cv');
@@ -134,22 +149,82 @@ var startMask=document.getElementById('start');
 var startBtn=document.getElementById('startBtn');
 var startMsg=document.getElementById('startMsg');
 var bar=document.getElementById('bar');
-var btnFlip=document.getElementById('btnFlip');
+var btnCam=document.getElementById('btnCam');
 var btnObj=document.getElementById('btnObj');
 var btnPose=document.getElementById('btnPose');
+var camSheet=document.getElementById('camSheet');
+var camList=document.getElementById('camList');
+var camClose=document.getElementById('camClose');
 var EDGES=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
 var COLORS={person:'#ff5a5f',bicycle:'#43f5c3',car:'#43f5c3',motorcycle:'#43f5c3',bus:'#ffd166',truck:'#ffd166',cup:'#9fe8ff',bottle:'#9fe8ff',laptop:'#c084fc',tv:'#c084fc',cell_phone:'#ffd166',chair:'#43f5c3',dining_table:'#43f5c3',keyboard:'#c084fc',mouse:'#c084fc',book:'#ffd166',backpack:'#ff5a5f',clock:'#c084fc',potted_plant:'#4ade80',vase:'#4ade80',remote:'#9fe8ff',scissors:'#ffd166',teddy_bear:'#ff5a5f'};
 var coco=null, detector=null;
 var poseReady=false, objReady=false;
-var objects=[], poses=[];
+var smoothBoxes=[];
+var sk=null;
 var running=false;
 var facing='environment';
 var showObj=true, showPose=true;
 var frame=0, lastT=0, fpsSmooth=0;
+var cams=[];
+var curCamId=null;
 var DL={loaded:0, total:0, done:false};
 FILES.forEach(function(f){ DL.total+=f.size; });
 var ASSETS=window.__AI_LENS.ASSETS;
 var origFetch=window.__AI_LENS.origFetch;
+
+function IoU(a,b){
+  var x1=Math.max(a[0],b[0]);
+  var y1=Math.max(a[1],b[1]);
+  var x2=Math.min(a[0]+a[2],b[0]+b[2]);
+  var y2=Math.min(a[1]+a[3],b[1]+b[3]);
+  var iw=Math.max(0,x2-x1), ih=Math.max(0,y2-y1);
+  var inter=iw*ih;
+  var ua=a[2]*a[3]+b[2]*b[3]-inter;
+  return ua>0?inter/ua:0;
+}
+
+function smoothUpdate(newObjs){
+  smoothBoxes.forEach(function(b){ b.matched=false; });
+  newObjs.forEach(function(o){
+    var best=null, bestIou=0;
+    smoothBoxes.forEach(function(b){
+      if(b.matched||b.cls!==o.class){return;}
+      var iou=IoU(b.bbox,o.bbox);
+      if(iou>bestIou){bestIou=iou;best=b;}
+    });
+    if(best && bestIou>0.25){
+      best.matched=true;
+      best.bbox=best.bbox.map(function(v,k){return v*0.4+o.bbox[k]*0.6;});
+      best.score=o.score; best.ttl=8;
+    } else {
+      smoothBoxes.push({cls:o.class,score:o.score,bbox:o.bbox.slice(),ttl:8,matched:true});
+    }
+  });
+  for(var i=smoothBoxes.length-1;i>=0;i--){
+    var b=smoothBoxes[i];
+    if(!b.matched){ b.ttl--; if(b.ttl<=0){ smoothBoxes.splice(i,1); } }
+  }
+}
+
+function smoothPose(poses){
+  if(!poses.length||!poses[0].keypoints){ return; }
+  var kp=poses[0].keypoints;
+  if(!sk){ sk=kp.map(function(k){return {x:k.x,y:k.y,s:k.score};}); return; }
+  for(var i=0;i<kp.length;i++){
+    var k=kp[i], o=sk[i];
+    if(k.score>0.2){
+      if(o.s>0.2){ o.x=o.x*0.35+k.x*0.65; o.y=o.y*0.35+k.y*0.65; o.s=k.score; }
+      else { o.x=k.x; o.y=k.y; o.s=k.score; }
+    } else { o.s=o.s*0.8; }
+  }
+}
+
+function countVisibleKp(){
+  if(!sk){ return 0; }
+  var n=0;
+  for(var i=0;i<sk.length;i++){ if(sk[i].s>0.3){ n++; } }
+  return n;
+}
 
 function updStatusLoad(){
   var pct=Math.min(100, Math.round(DL.loaded/DL.total*100));
@@ -203,12 +278,6 @@ async function preloadGroup(files){
   }));
 }
 
-function hasVisible(p){
-  if(!p||!p.keypoints){return false;}
-  for(var i=0;i<p.keypoints.length;i++){ if(p.keypoints[i].score>0.3){return true;} }
-  return false;
-}
-
 function refreshTag(){
   if(poseReady&&objReady){ tagText.textContent='AI LENS / LIVE'; }
   else if(poseReady){ tagText.textContent='骨骼就绪 / 物体加载中'; }
@@ -218,7 +287,7 @@ function refreshTag(){
 
 async function loadPose(){
   try{
-    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,modelUrl:SOURCES[0]+'models/movenet/model.json'});
+    detector=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,modelUrl:SOURCES[0]+'models/movenet-thunder/model.json'});
     poseReady=true;
     btnPose.disabled=false;
     btnPose.textContent='骨骼 ON';
@@ -241,38 +310,35 @@ function draw(){
   var w=cv.width,h=cv.height;
   ctx.clearRect(0,0,w,h);
   if(showObj){
-    objects.forEach(function(b){
+    smoothBoxes.forEach(function(b){
       var x=b.bbox[0],y=b.bbox[1],bw=b.bbox[2],bh=b.bbox[3];
-      var color=COLORS[b.class]||'#43f5c3';
+      var color=COLORS[b.cls]||'#43f5c3';
       ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(x,y,bw,bh);
-      var text=(b.class==='cell_phone'?'phone':b.class)+' '+(b.score*100).toFixed(0)+'%';
+      var text=(b.cls==='cell_phone'?'phone':b.cls)+' '+(b.score*100).toFixed(0)+'%';
       ctx.font='600 13px Consolas,monospace';
       var tw=ctx.measureText(text).width;
       ctx.fillStyle='rgba(5,7,10,0.62)';ctx.fillRect(x,y-20,tw+12,20);
       ctx.fillStyle=color;ctx.fillText(text,x+6,y-6);
     });
   }
-  if(showPose){
-    poses.forEach(function(p){
-      var kp=p.keypoints;
-      ctx.lineWidth=3;ctx.strokeStyle='#22f5ff';
-      EDGES.forEach(function(e){
-        var ka=kp[e[0]],kb=kp[e[1]];
-        if(ka.score>0.3&&kb.score>0.3){ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke();}
-      });
-      kp.forEach(function(k){
-        if(k.score>0.3){ctx.beginPath();ctx.arc(k.x,k.y,4,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
-      });
+  if(showPose && sk){
+    ctx.lineWidth=2.5;ctx.strokeStyle='#22f5ff';
+    EDGES.forEach(function(e){
+      var ka=sk[e[0]],kb=sk[e[1]];
+      if(ka.s>0.3&&kb.s>0.3){ctx.beginPath();ctx.moveTo(ka.x,ka.y);ctx.lineTo(kb.x,kb.y);ctx.stroke();}
+    });
+    sk.forEach(function(k){
+      if(k.s>0.3){ctx.beginPath();ctx.arc(k.x,k.y,3.5,0,6.2832);ctx.fillStyle='#ff3b6b';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=1.5;ctx.stroke();}
     });
   }
   var humanCount=0;
-  poses.forEach(function(p){ if(hasVisible(p)){humanCount++;} });
+  if(showPose && countVisibleKp()>5){ humanCount=1; }
   if(!running){ statusEl.textContent='STANDBY'; }
   else if(!DL.done){ updStatusLoad(); }
   else if(!poseReady&&!objReady){ statusEl.textContent='模型初始化中...'; }
   else if(poseReady&&!objReady){ statusEl.textContent='骨骼就绪 · 物体加载中 | '+Math.round(fpsSmooth)+' FPS'; }
   else if(!poseReady&&objReady){ statusEl.textContent='物体就绪 · 骨骼加载中 | '+Math.round(fpsSmooth)+' FPS'; }
-  else { statusEl.textContent='TARGETS '+objects.length+' / HUMAN '+humanCount+' | '+Math.round(fpsSmooth)+' FPS'; }
+  else { statusEl.textContent='TARGETS '+smoothBoxes.length+' / HUMAN '+humanCount+' | '+Math.round(fpsSmooth)+' FPS'; }
 }
 
 async function loop(){
@@ -281,11 +347,85 @@ async function loop(){
   var dt=now-lastT; lastT=now;
   if(dt>0){ var inst=1000/dt; fpsSmooth=fpsSmooth>0?fpsSmooth*0.9+inst*0.1:inst; }
   try{
-    if(showPose && poseReady && frame%2===0){ poses=await detector.estimatePoses(video); }
-    if(showObj && objReady && frame%3===0){ objects=await coco.detect(video,50,0.15); }
+    if(showPose && poseReady && frame%2===0){
+      var ps=await detector.estimatePoses(video);
+      smoothPose(ps);
+    } else if(showObj && objReady && frame%2===1){
+      var raw=await coco.detect(video,60,0.18);
+      smoothUpdate(raw);
+    }
   }catch(e){}
   draw();
   if(running){ requestAnimationFrame(loop); }
+}
+
+function camLabel(c,i){
+  var l=(c.label||'').replace(/\s+/g,' ').trim();
+  if(!l){ l='camera '+(i+1); }
+  return l;
+}
+
+function shortName(c,i){
+  var l=camLabel(c,i);
+  var face=/front|前置/i.test(l)?'前置':((/back|后置|rear|环境/i.test(l))?'后置':'');
+  var m=l.match(/camera\s*(\d+)/i);
+  if(m){ return (face?face:'镜头')+' '+m[1]; }
+  return face?face:'镜头'+(i+1);
+}
+
+async function loadCams(){
+  try{
+    var devs=await navigator.mediaDevices.enumerateDevices();
+    cams=devs.filter(function(d){ return d.kind==='videoinput'; });
+  }catch(e){ cams=[]; }
+}
+
+function updateCamBtn(){
+  var name='镜头';
+  if(curCamId){
+    for(var i=0;i<cams.length;i++){
+      if(cams[i].deviceId===curCamId){ name=shortName(cams[i],i); break; }
+    }
+  }
+  btnCam.textContent=name;
+}
+
+function openCamMenu(){
+  loadCams().then(function(){
+    camList.innerHTML='';
+    if(!cams.length){
+      var d=document.createElement('div');
+      d.className='camItem';
+      d.textContent='未识别到其他镜头';
+      camList.appendChild(d);
+    }
+    cams.forEach(function(c,i){
+      var b=document.createElement('button');
+      b.className='camItem'+(c.deviceId===curCamId?' camActive':'');
+      b.textContent=shortName(c,i)+'   ·   '+camLabel(c,i);
+      b.onclick=(function(id){ return function(){ closeCamMenu(); switchCam(id); }; })(c.deviceId);
+      camList.appendChild(b);
+    });
+    camSheet.style.display='flex';
+  });
+}
+
+function closeCamMenu(){ camSheet.style.display='none'; }
+
+async function switchCam(id){
+  try{
+    sk=null; smoothBoxes.length=0;
+    await startCameraById(id);
+    curCamId=id;
+    updateCamBtn();
+  }catch(e){}
+}
+
+async function startCameraById(id){
+  if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); }
+  var stream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:id},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  video.srcObject=stream;
+  await video.play();
 }
 
 async function startCamera(){
@@ -293,6 +433,10 @@ async function startCamera(){
   var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});
   video.srcObject=stream;
   await video.play();
+  try{
+    var st=stream.getVideoTracks()[0].getSettings();
+    if(st && st.deviceId){ curCamId=st.deviceId; }
+  }catch(e){}
 }
 
 startBtn.addEventListener('click', async function(){
@@ -303,11 +447,12 @@ startBtn.addEventListener('click', async function(){
     startMask.style.display='none';
     bar.style.display='flex';
     running=true; lastT=performance.now(); requestAnimationFrame(loop);
+    loadCams().then(updateCamBtn);
     updStatusLoad();
-    preloadGroup(FILES.slice(0,3)).then(function(){
+    preloadGroup(FILES.slice(0,4)).then(function(){
       loadPose();
     }).catch(function(){});
-    preloadGroup(FILES.slice(3)).then(function(){
+    preloadGroup(FILES.slice(4)).then(function(){
       DL.done=true;
       updStatusLoad();
       loadCoco();
@@ -319,23 +464,22 @@ startBtn.addEventListener('click', async function(){
   }
 });
 
-btnFlip.addEventListener('click', async function(){
-  facing = facing==='environment' ? 'user' : 'environment';
-  try{ await startCamera(); }catch(e){}
-});
+btnCam.addEventListener('click', openCamMenu);
+camClose.addEventListener('click', closeCamMenu);
+camSheet.addEventListener('click', function(e){ if(e.target===camSheet){ closeCamMenu(); } });
 
 btnObj.addEventListener('click', function(){
   showObj=!showObj;
   btnObj.textContent='物体框 '+(showObj?'ON':'OFF');
   btnObj.className=showObj?'btn':'btn off';
-  if(!showObj){ objects=[]; }
+  if(!showObj){ smoothBoxes.length=0; }
 });
 
 btnPose.addEventListener('click', function(){
   showPose=!showPose;
   btnPose.textContent='骨骼 '+(showPose?'ON':'OFF');
   btnPose.className=showPose?'btn':'btn off';
-  if(!showPose){ poses=[]; }
+  if(!showPose){ sk=null; }
 });
 
 startBtn.disabled=false;
