@@ -82,14 +82,15 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
     <button id="startBtn" disabled>启动</button>
   </div>
 </div>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js"></script>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js"></script>
-<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/tf.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/coco-ssd.min.js"></script>
+<script src="https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/js/pose-detection.min.js"></script>
 <script>
 (function(){
-  var TF2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/tf.min.js';
-  var CO2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/coco-ssd.min.js';
-  var PO2='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/js/pose-detection.min.js';
+  var C='https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/';
+  var TF2=C+'js/tf.min.js';
+  var CO2=C+'js/coco-ssd.min.js';
+  var PO2=C+'js/pose-detection.min.js';
   function load(src,cb){ var s=document.createElement('script'); s.src=src; s.onload=cb; s.onerror=cb; document.head.appendChild(s); }
   function ensure(){
     if(typeof tf==='undefined'){ load(TF2,function(){ setTimeout(ensure,50); }); return; }
@@ -104,23 +105,24 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
 <script>
 function waitLibs(cb){ if(window.__LIBS_READY){ cb(); } else { setTimeout(function(){ waitLibs(cb); },120); } }
 waitLibs(function(){
+var C='https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/';
 var SOURCES=[
-  'https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/',
-  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/',
-  'https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@main/',
-  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@main/',
-  'https://gh-proxy.com/https://raw.githubusercontent.com/tayyh19/ai-lens/main/',
-  'https://ghproxy.net/https://raw.githubusercontent.com/tayyh19/ai-lens/main/'
+  C,
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/',
+  C,
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/',
+  C,
+  'https://testingcf.jsdelivr.net/gh/tayyh19/ai-lens@dd291242747af79bab8751687ae9965de4b7a3b4/'
 ];
 var FILES=[
   {rel:'models/movenet/model.json', size:168013, s:0},
-  {rel:'models/movenet/group1-shard1of2.bin', size:4194304, s:1},
-  {rel:'models/movenet/group1-shard2of2.bin', size:455912, s:5},
-  {rel:'models/coco-ssd-lite/model.json', size:257764, s:4},
-  {rel:'models/coco-ssd-lite/group1-shard1of4', size:2254332, s:0},
-  {rel:'models/coco-ssd-lite/group1-shard2of4', size:2254332, s:1},
-  {rel:'models/coco-ssd-lite/group1-shard3of4', size:2254332, s:0},
-  {rel:'models/coco-ssd-lite/group1-shard4of4', size:2254332, s:0}
+  {rel:'models/movenet/group1-shard1of2.bin', size:4194304, s:0},
+  {rel:'models/movenet/group1-shard2of2.bin', size:455912, s:1},
+  {rel:'models/coco-ssd-lite/model.json', size:257764, s:0},
+  {rel:'models/coco-ssd-lite/group1-shard1of4', size:2254332, s:1},
+  {rel:'models/coco-ssd-lite/group1-shard2of4', size:2254332, s:0},
+  {rel:'models/coco-ssd-lite/group1-shard3of4', size:2254332, s:1},
+  {rel:'models/coco-ssd-lite/group1-shard4of4', size:2254332, s:1}
 ];
 var video=document.getElementById('video');
 var cv=document.getElementById('cv');
