@@ -47,14 +47,14 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;}
   </div>
 </div>
 <div class="bar" id="bar" style="display:none;">
-  <button class="btn" id="btnFlip">鍒囨崲闀滃ご</button>
-  <button class="btn" id="btnObj">鐗╀綋妗?ON</button>
-  <button class="btn" id="btnPose">楠ㄩ ON</button>
+  <button class="btn" id="btnFlip">切换镜头</button>
+  <button class="btn" id="btnObj">物体框 ON</button>
+  <button class="btn" id="btnPose">骨骼 ON</button>
 </div>
 <div id="start">
   <h1>AI LENS</h1>
-  <p>瀹炴椂鐩爣閿佸畾 + 浜虹墿楠ㄩ<br>棣栨浣跨敤闇€鍔犺浇 AI 妯″瀷锛堢害 20MB锛岃鐢?WiFi锛?/p>
-  <button id="startBtn" disabled>鍚姩</button>
+  <p>实时目标锁定 + 人物骨骼<br>首次使用需加载 AI 模型（约 20MB，请用 WiFi）</p>
+  <button id="startBtn" disabled>启动</button>
 </div>
 <script src="js/tf.min.js"></script>
 <script src="js/coco-ssd.min.js"></script>
@@ -158,7 +158,7 @@ function ensureModels(){
 
 startBtn.addEventListener('click', async function(){
   startBtn.disabled=true;
-  startMask.querySelector('p').innerHTML='姝ｅ湪鍔犺浇 AI 妯″瀷锛堥娆＄害 20MB锛?..<br>璇风◢鍊欙紝骞跺厑璁告憚鍍忓ご鏉冮檺';
+  startMask.querySelector('p').innerHTML='正在加载 AI模型……请稍候并允许摄像头权限';
   try{
     await Promise.all([ensureModels(), startCamera()]);
     startMask.style.display='none';
@@ -168,8 +168,8 @@ startBtn.addEventListener('click', async function(){
     infoEl.textContent='COCO-SSD + MOVENET // '+bk.toUpperCase();
     running=true; lastT=performance.now(); requestAnimationFrame(loop);
   }catch(e){
-    startMask.querySelector('p').innerHTML='鍚姩澶辫触锛?+(e&&e.message?e.message:e)+'<br>璇峰厑璁告憚鍍忓ご鏉冮檺鍚庨噸璇?;
-    startBtn.textContent='閲嶈瘯';
+    startMask.querySelector('p').innerHTML='启动失败：'+(e&&e.message?e.message:e)+'，请允许摄像头权限后重试';
+    startBtn.textContent='重试';
     startBtn.disabled=false;
   }
 });
@@ -181,14 +181,14 @@ btnFlip.addEventListener('click', async function(){
 
 btnObj.addEventListener('click', function(){
   showObj=!showObj;
-  btnObj.textContent='鐗╀綋妗?'+(showObj?'ON':'OFF');
+  btnObj.textContent='物体框 '+(showObj?'ON':'OFF');
   btnObj.className=showObj?'btn':'btn off';
   if(!showObj){ objects=[]; }
 });
 
 btnPose.addEventListener('click', function(){
   showPose=!showPose;
-  btnPose.textContent='楠ㄩ '+(showPose?'ON':'OFF');
+  btnPose.textContent='骨骼 '+(showPose?'ON':'OFF');
   btnPose.className=showPose?'btn':'btn off';
   if(!showPose){ poses=[]; }
 });
