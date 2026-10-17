@@ -390,7 +390,8 @@ function iouOf(a,b){
   return uni>0?inter/uni:0;
 }
 
-var TILES=[[0,0,0.5,0.5],[0.5,0,0.5,0.5],[0,0.5,0.5,0.5],[0.5,0.5,0.5,0.5]];
+var TILES=[];
+(function(){ for(var ty=0;ty<3;ty++){ for(var tx=0;tx<3;tx++){ TILES.push([tx/3, ty/3, 1/3, 1/3]); } } })();
 var tileC=null, tileCtx=null;
 function tileCrop(t){
   if(!tileC){ tileC=document.createElement('canvas'); tileC.width=320; tileC.height=320; tileCtx=tileC.getContext('2d'); }
@@ -410,9 +411,10 @@ function mergePreds(preds, mapFn, minScore){
     p=preds[pi];
     if(!p||!p.bbox) continue;
     if(p.score<minScore) continue;
-    if(p.class==='person'&&p.score<0.35) continue;
     b=mapFn(p.bbox);
-    if(b.w<5||b.h<5) continue;
+    if(!b) continue;
+    if(p.class==='person'&&p.score<0.28) continue;
+    if(b.w<4||b.h<4) continue;
     var bi=-1, biou=0.3;
     for(i=0;i<objTracks.length;i++){
       if(used[i]||objTracks[i].cls!==p.class) continue;
@@ -434,6 +436,7 @@ function mergePreds(preds, mapFn, minScore){
     if(q.score>=minScore) continue;
     if(q.score<0.12) continue;
     var b2=mapFn(q.bbox);
+    if(!b2) continue;
     for(i=0;i<objTracks.length;i++){
       if(used[i]||objTracks[i].cls!==q.class) continue;
       if(iouOf(b2,objTracks[i].b)>0.35){
@@ -446,6 +449,21 @@ function mergePreds(preds, mapFn, minScore){
   }
   for(var k=0;k<objTracks.length;k++){ if(!used[k]) objTracks[k].miss++; }
   var now=performance.now();
+  var dedup=[];
+  for(var da=0;da<objTracks.length;da++){
+    var ta=objTracks[da];
+    var dup=false;
+    for(var db=0;db<dedup.length;db++){
+      if(dedup[db].cls!==ta.cls) continue;
+      if(iouOf(ta.b,dedup[db].b)>0.45){
+        dup=true;
+        if(ta.conf>dedup[db].conf){ dedup[db]=ta; }
+        break;
+      }
+    }
+    if(!dup) dedup.push(ta);
+  }
+  objTracks=dedup;
   var out=[];
   for(var m=0;m<objTracks.length;m++){
     var tr=objTracks[m];
@@ -464,19 +482,26 @@ async function objLoop(){
     if(objBusy){ await sleep(40); continue; }
     objBusy=true;
     try{
-      var phase=objTick%6;
+      var phase=objTick%10;
       objTick++;
-      if(phase<3){
-        var preds=await objModel.detect(video,15);
-        if(preds) mergePreds(preds, identityMap, 0.22);
+      if(phase===0){
+        var preds=await objModel.detect(video,20);
+        if(preds) mergePreds(preds, identityMap, 0.18);
       } else {
         var tp=TILES[tileIdx%TILES.length];
         tileIdx++;
         var m=tileCrop(tp);
-        var preds2=await objModel.detect(m.canvas,15);
+        var preds2=await objModel.detect(m.canvas,20);
         if(preds2){
-          var mf=(function(mm){ return function(bb){ return tileMap(bb,mm); }; })(m);
-          mergePreds(preds2, mf, 0.15);
+          var mf=(function(mm){ return function(bb){
+            var r=tileMap(bb,mm);
+            var cxx=r.x+r.w/2, cyy=r.y+r.h/2;
+            var tw=mm.sx*320, th=mm.sy*320;
+            if(cxx<mm.ox+tw*0.12||cxx>mm.ox+tw*0.88) return null;
+            if(cyy<mm.oy+th*0.12||cyy>mm.oy+th*0.88) return null;
+            return r;
+          }; })(m);
+          mergePreds(preds2, mf, 0.10);
         }
       }
     }catch(e){}
