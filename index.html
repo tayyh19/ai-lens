@@ -381,32 +381,31 @@ function iouOf(a,b){
   return uni>0?inter/uni:0;
 }
 
-function centerCrop(){
-  if(!cropC){ cropC=document.createElement('canvas'); cropC.width=320; cropC.height=320; cropCtx=cropC.getContext('2d'); }
+var TILES=[[0,0,0.5,0.5],[0.5,0,0.5,0.5],[0,0.5,0.5,0.5],[0.5,0.5,0.5,0.5]];
+var tileC=null, tileCtx=null;
+function tileCrop(t){
+  if(!tileC){ tileC=document.createElement('canvas'); tileC.width=320; tileC.height=320; tileCtx=tileC.getContext('2d'); }
   var vw=video.videoWidth||1280, vh=video.videoHeight||720;
-  var cw=vw*0.62, ch=vh*0.62;
-  cropCtx.drawImage(video,(vw-cw)/2,(vh-ch)/2,cw,ch,0,0,cropC.width,cropC.height);
-  return cropC;
+  var tx=t[0]*vw, ty=t[1]*vh, tw=t[2]*vw, th=t[3]*vh;
+  tileCtx.drawImage(video,tx,ty,tw,th,0,0,320,320);
+  return {canvas:tileC, ox:tx, oy:ty, sx:tw/320, sy:th/320};
 }
-function cropMap(b){
-  var vw=video.videoWidth||1280, vh=video.videoHeight||720;
-  var cw=vw*0.62, ch=vh*0.62;
-  var sx=(vw-cw)/2, sy=(vh-ch)/2;
-  return {x:sx+b[0]*cw/(cropC?cropC.width:320), y:sy+b[1]*ch/(cropC?cropC.height:320), w:b[2]*cw/(cropC?cropC.width:320), h:b[3]*ch/(cropC?cropC.height:320)};
-}
+function tileMap(b,m){ return {x:m.ox+b[0]*m.sx, y:m.oy+b[1]*m.sy, w:b[2]*m.sx, h:b[3]*m.sy}; }
 function identityMap(b){ return {x:b[0],y:b[1],w:b[2],h:b[3]}; }
 
-function mergePreds(preds, mapFn){
+function mergePreds(preds, mapFn, minScore){
+  minScore=(typeof minScore==='number')?minScore:0.22;
   var used={};
+  var i, p, b;
   for(var pi=0;pi<preds.length;pi++){
-    var p=preds[pi];
+    p=preds[pi];
     if(!p||!p.bbox) continue;
-    if(p.score<0.22) continue;
-    if(p.class==='person'&&p.score<0.45) continue;
-    var b=mapFn(p.bbox);
-    if(b.w<8||b.h<8) continue;
+    if(p.score<minScore) continue;
+    if(p.class==='person'&&p.score<0.35) continue;
+    b=mapFn(p.bbox);
+    if(b.w<5||b.h<5) continue;
     var bi=-1, biou=0.3;
-    for(var i=0;i<objTracks.length;i++){
+    for(i=0;i<objTracks.length;i++){
       if(used[i]||objTracks[i].cls!==p.class) continue;
       var iou=iouOf(b,objTracks[i].b);
       if(iou>biou){ bi=i; biou=iou; }
@@ -414,9 +413,26 @@ function mergePreds(preds, mapFn){
     if(bi>=0){
       used[bi]=true;
       var t=objTracks[bi];
-      t.b=b; t.conf=p.score; t.miss=0; t.hit=Math.min(10,t.hit+1);
+      t.b={x:t.b.x*0.55+b.x*0.45, y:t.b.y*0.55+b.y*0.45, w:t.b.w*0.55+b.w*0.45, h:t.b.h*0.55+b.h*0.45};
+      t.conf=p.score; t.miss=0; t.hit=Math.min(10,t.hit+1);
     } else {
       objTracks.push({id:trackSeq++, cls:p.class, b:b, conf:p.score, miss:0, hit:1, born:performance.now(), kp:null, strikes:0});
+    }
+  }
+  for(var pj=0;pj<preds.length;pj++){
+    var q=preds[pj];
+    if(!q||!q.bbox) continue;
+    if(q.score>=minScore) continue;
+    if(q.score<0.12) continue;
+    var b2=mapFn(q.bbox);
+    for(i=0;i<objTracks.length;i++){
+      if(used[i]||objTracks[i].cls!==q.class) continue;
+      if(iouOf(b2,objTracks[i].b)>0.35){
+        used[i]=true;
+        objTracks[i].b={x:objTracks[i].b.x*0.6+b2.x*0.4, y:objTracks[i].b.y*0.6+b2.y*0.4, w:objTracks[i].b.w*0.6+b2.w*0.4, h:objTracks[i].b.h*0.6+b2.h*0.4};
+        objTracks[i].miss=0;
+        break;
+      }
     }
   }
   for(var k=0;k<objTracks.length;k++){ if(!used[k]) objTracks[k].miss++; }
@@ -424,7 +440,7 @@ function mergePreds(preds, mapFn){
   var out=[];
   for(var m=0;m<objTracks.length;m++){
     var tr=objTracks[m];
-    if(tr.miss>=3) continue;
+    if(tr.miss>=4) continue;
     var age=now-tr.born;
     if(tr.hit<2&&tr.conf<0.5&&age<700) continue;
     out.push(tr);
@@ -433,21 +449,30 @@ function mergePreds(preds, mapFn){
 }
 
 async function objLoop(){
+  var tileIdx=0;
   while(true){
     if(!running||!objOn||!objReady||video.readyState<2){ await sleep(180); continue; }
     if(objBusy){ await sleep(40); continue; }
     objBusy=true;
     try{
-      var useCrop=(objTick%3===2);
+      var phase=objTick%6;
       objTick++;
-      var input, mapFn;
-      if(useCrop){ input=centerCrop(); mapFn=cropMap; }
-      else { input=video; mapFn=identityMap; }
-      var preds=await objModel.detect(input,15);
-      if(preds&&preds.length!==undefined) mergePreds(preds,mapFn);
+      if(phase<3){
+        var preds=await objModel.detect(video,15);
+        if(preds) mergePreds(preds, identityMap, 0.22);
+      } else {
+        var tp=TILES[tileIdx%TILES.length];
+        tileIdx++;
+        var m=tileCrop(tp);
+        var preds2=await objModel.detect(m.canvas,15);
+        if(preds2){
+          var mf=(function(mm){ return function(bb){ return tileMap(bb,mm); }; })(m);
+          mergePreds(preds2, mf, 0.15);
+        }
+      }
     }catch(e){}
     objBusy=false;
-    await sleep(25);
+    await sleep(20);
   }
 }
 
