@@ -10,8 +10,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
 #app{position:fixed;inset:0;background:#000;overflow:hidden}
-#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transform-origin:center center}
-#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;transform-origin:center center}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;opacity:.01;z-index:0;pointer-events:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;transform-origin:center center;background:#000;z-index:1}
 .top{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:8px;right:8px;display:flex;justify-content:space-between;align-items:center;z-index:20;gap:6px;pointer-events:none}
 .tag{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;font-size:10px;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2));border:1px solid var(--bd);backdrop-filter:blur(22px) saturate(1.8);-webkit-backdrop-filter:blur(22px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 18px rgba(0,0,0,.25);max-width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dot{width:6px;height:6px;border-radius:50%;background:#4be38b;box-shadow:0 0 8px #4be38b;flex:none}
@@ -108,7 +108,7 @@ var objBusy=false, objTick=0;
 var recording=false, recorder=null, recChunks=[], recT0=0, recCanvas=null, recCtx=null;
 var cropC=null, cropCtx=null, poseC=null, poseCtx=null;
 var fpsCnt=0, fpsT0=0, fpsVal=0;
-var loopsStarted=false;
+var loopsStarted=false, noPicFrames=0;
 
 var CBASES=[
 'https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf',
@@ -187,8 +187,13 @@ async function preloadAll(){
   var first=await (async function(){
     for(var k=0;k<CBASES.length;k++){
       try{
-        var r=await fetch(CBASES[k]+'/models/coco-ssd-lite/model.json',{cache:'force-cache'});
-        if(r.ok){ await r.blob(); return CBASES[k]; }
+        var ctl0=new AbortController();
+        var t0=setTimeout(function(){ try{ ctl0.abort(); }catch(e){} }, 9000);
+        try{
+          var r=await fetch(CBASES[k]+'/models/coco-ssd-lite/model.json',{cache:'force-cache',signal:ctl0.signal});
+          if(r.ok){ await r.blob(); clearTimeout(t0); return CBASES[k]; }
+        }catch(e){}
+        clearTimeout(t0);
       }catch(e){}
     }
     return null;
@@ -211,8 +216,14 @@ async function preloadAll(){
         for(var k=0;k<order.length;k++){
           try{
             var url=order[(my+k)%order.length]+'/'+p;
-            var resp=await fetch(url,{cache:'force-cache'});
-            if(resp.ok){ await resp.blob(); found=url; break; }
+            var ctl=new AbortController();
+            var tid=setTimeout(function(){ try{ ctl.abort(); }catch(e){} }, 9000);
+            try{
+              var resp=await fetch(url,{cache:'force-cache',signal:ctl.signal});
+              if(resp.ok){ await resp.blob(); found=url; }
+            }catch(e){}
+            clearTimeout(tid);
+            if(found){ break; }
           }catch(e){}
         }
         results[p]=found;
@@ -339,7 +350,9 @@ function render(){
   if(!running) return;
   var vw=video.videoWidth||0, vh=video.videoHeight||0;
   if(vw>0&&vh>0&&(cv.width!==vw||cv.height!==vh)){ cv.width=vw; cv.height=vh; updateInfo(); }
-  ctx.clearRect(0,0,cv.width,cv.height);
+  if(vw>0&&vh>0){ try{ ctx.drawImage(video,0,0,cv.width,cv.height); }catch(e){ ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height); } }
+  else { ctx.fillStyle='#000'; ctx.fillRect(0,0,cv.width,cv.height); }
+  if(running&&vw===0){ noPicFrames++; if(noPicFrames===90){ info.textContent='摄像头无画面：可能被其他应用占用，请刷新重试'; } } else { noPicFrames=0; }
   if(objOn){
     for(var i=0;i<objTracks.length;i++){
       var t=objTracks[i];
@@ -350,11 +363,7 @@ function render(){
     for(var j=0;j<objTracks.length;j++){ if(objTracks[j].kp) drawPose(objTracks[j].kp); }
     if(globalKp) drawPose(globalKp);
   }
-  if(recording&&recCtx){
-    try{
-      recCtx.drawImage(video,0,0,recCanvas.width,recCanvas.height);
-      recCtx.drawImage(cv,0,0,recCanvas.width,recCanvas.height);
-    }catch(e){}
+  if(recording){
     btnRec.textContent='停 '+((performance.now()-recT0)/1000).toFixed(1)+'s';
   }
   requestAnimationFrame(function(){});
@@ -559,7 +568,6 @@ async function poseLoop(){
 
 function setZoom(z){
   zoomVal=z;
-  video.style.transform='scale('+z+')';
   cv.style.transform='scale('+z+')';
   var bs=zoomRow.querySelectorAll('.zbtn');
   for(var i=0;i<bs.length;i++){ bs[i].classList.toggle('on',Number(bs[i].getAttribute('data-z'))===z); }
@@ -588,23 +596,18 @@ async function switchCam(id,name){
 
 function takeShot(){
   if(!running) return;
-  var vw=video.videoWidth||1280, vh=video.videoHeight||720;
-  var c=document.createElement('canvas');
-  c.width=vw; c.height=vh;
-  var cc=c.getContext('2d');
-  cc.drawImage(video,0,0,vw,vh);
-  try{ cc.drawImage(cv,0,0,vw,vh); }catch(e){}
+  if(!cv.width||!cv.height){ info.textContent='画面未就绪'; return; }
   try{
-    c.toBlob(function(blob){
-      if(!blob) return;
+    cv.toBlob(function(blob){
+      if(!blob){ info.textContent='拍照失败'; return; }
       var a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
       a.download='ai-lens-'+Date.now()+'.png';
       a.click();
       setTimeout(function(){ URL.revokeObjectURL(a.href); },6000);
+      info.textContent='已拍照保存';
     },'image/png');
-  }catch(e){}
-  info.textContent='已拍照保存';
+  }catch(e){ info.textContent='拍照失败'; }
 }
 
 function toggleRec(){
@@ -619,11 +622,8 @@ function toggleRec(){
   }
   if(!window.MediaRecorder){ info.textContent='浏览器不支持录制'; return; }
   try{
-    recCanvas=document.createElement('canvas');
-    recCanvas.width=960; recCanvas.height=540;
-    recCtx=recCanvas.getContext('2d');
     recChunks=[];
-    var stream=recCanvas.captureStream(30);
+    var stream=cv.captureStream(30);
     var mt='video/webm;codecs=vp8';
     if(!MediaRecorder.isTypeSupported(mt)){
       mt='video/webm';
@@ -659,6 +659,9 @@ startBtn.addEventListener('click', async function(){
   startMsg.textContent='正在打开摄像头…';
   try{
     await startCamera();
+    var wf=0;
+    while(video.videoWidth===0&&wf<3000){ await sleep(100); wf+=100; }
+    try{ video.play(); }catch(e){}
     startMask.style.display='none';
     running=true;
     tagR.textContent='加载引擎';
