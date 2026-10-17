@@ -126,6 +126,10 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:ce
 <script>
 function waitLibs(cb){ if(window.__LIBS_READY){ cb(); } else { setTimeout(function(){ waitLibs(cb); },120); } }
 waitLibs(function(){
+if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+  try{ document.getElementById("startMsg").textContent="当前浏览器不支持摄像头，请用系统浏览器或Chrome打开"; document.getElementById("startBtn").textContent="不支持"; document.getElementById("startBtn").disabled=true; }catch(e){}
+  return;
+}
 var C='https://gcore.jsdelivr.net/gh/tayyh19/ai-lens@1d341c29e30488f7f640f872540284a960a400cf/';
 var SOURCES=[
   C,
@@ -572,18 +576,42 @@ async function switchCam(id){
   }catch(e){}
 }
 
+function waitPlay(video, timeoutMs){
+  return new Promise(function(resolve,reject){
+    var done=false;
+    var timer=setTimeout(function(){ if(!done){ done=true; reject(new Error('PLAY_TIMEOUT')); } }, timeoutMs||6000);
+    function fin(err){ if(done){return;} done=true; clearTimeout(timer); if(err){reject(err);}else{resolve();} }
+    video.onloadedmetadata=function(){ fin(null); };
+    var p=video.play();
+    if(p && p.then){ p.then(function(){ fin(null); }).catch(function(e){ fin(e); }); }
+    else { fin(null); }
+  });
+}
+function openStream(constraints){
+  return new Promise(function(resolve,reject){
+    var done=false;
+    var timer=setTimeout(function(){ if(!done){ done=true; reject(new Error('CAM_TIMEOUT')); } }, 12000);
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ clearTimeout(timer); reject(new Error('NO_MEDIA_API')); return; }
+    navigator.mediaDevices.getUserMedia(constraints).then(function(stream){
+      if(!done){ done=true; clearTimeout(timer); resolve(stream); }
+      else { stream.getTracks().forEach(function(t){t.stop();}); }
+    }).catch(function(e){
+      if(!done){ done=true; clearTimeout(timer); reject(e); }
+    });
+  });
+}
 async function startCameraById(id){
-  if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); }
-  var stream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:id},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); video.srcObject=null; }
+  var stream=await openStream({video:{deviceId:{exact:id},width:{ideal:1920},height:{ideal:1080}},audio:false});
   video.srcObject=stream;
-  await video.play();
+  try{ await waitPlay(video, 6000); }catch(e){}
 }
 
 async function startCamera(){
-  if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); }
-  var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});
+  if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); video.srcObject=null; }
+  var stream=await openStream({video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1080}},audio:false});
   video.srcObject=stream;
-  await video.play();
+  try{ await waitPlay(video, 6000); }catch(e){}
   try{
     var st=stream.getVideoTracks()[0].getSettings();
     if(st && st.deviceId){ curCamId=st.deviceId; }
@@ -630,9 +658,23 @@ startBtn.addEventListener('click', async function(){
       loadCoco();
     }).catch(function(){ DL.done=true; loadCoco(); });
   }catch(e){
-    startBtn.textContent='重试';
+    startBtn.textContent="重试";
     startBtn.disabled=false;
-    startMsg.innerHTML='相机启动失败：请允许摄像头权限后重试';
+    var emsg="相机启动失败";
+    try{
+      var en=(e&&e.name)?e.name:"";
+      var em=(e&&e.message)?e.message:"";
+      if(en==="NotAllowedError"){ emsg="摄像头权限被拒绝：请在浏览器/系统设置里允许摄像头后点重试"; }
+      else if(en==="NotFoundError"){ emsg="未找到摄像头"; }
+      else if(en==="NotReadableError"){ emsg="摄像头被占用：请关闭相机等应用后点重试"; }
+      else if(en==="OverconstrainedError"){ emsg="摄像头不支持该配置"; }
+      else if(em==="CAM_TIMEOUT"){ emsg="摄像头启动超时：请点重试"; }
+      else if(em==="PLAY_TIMEOUT"){ emsg="画面加载超时：请点重试"; }
+      else if(em==="NO_MEDIA_API"){ emsg="浏览器不支持摄像头API：请用系统浏览器或Chrome打开"; }
+      else if(en&&en!=="Error"){ emsg="启动失败："+en; }
+      else if(em){ emsg="启动失败："+em; }
+    }catch(x){}
+    startMsg.innerHTML=emsg;
   }
 });
 
@@ -656,6 +698,7 @@ btnPose.addEventListener('click', function(){
 
 btnShot.addEventListener('click', takeShot);
 
+window.addEventListener("pagehide", function(){ try{ if(video.srcObject){ video.srcObject.getTracks().forEach(function(t){t.stop();}); } }catch(e){} });
 startBtn.disabled=false;
 setTimeout(function(){ try{ if(!running){ startBtn.click(); } }catch(e){} }, 400);
 });
